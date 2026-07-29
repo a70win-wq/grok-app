@@ -7773,8 +7773,8 @@ export default function App() {
 
   /** Context usage chip label/state from compact events + message estimate. */
   const contextUsageDisplay = useMemo(
-    () => resolveContextUsageDisplay(contextUsage, messages),
-    [contextUsage, messages],
+    () => resolveContextUsageDisplay(contextUsage, messages, locale),
+    [contextUsage, messages, locale],
   );
 
   /** Char/word counts for the muted composer counter (hidden when empty). */
@@ -12761,6 +12761,7 @@ export default function App() {
                     />
                     <ContextUsageChip
                       display={contextUsageDisplay}
+                      locale={locale}
                       labels={{
                         aria: tr("context.chipAria"),
                         tipUnknown: tr("context.chipTipUnknown"),

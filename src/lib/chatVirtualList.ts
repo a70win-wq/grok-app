@@ -39,13 +39,26 @@ export function estimateChatRowHeight(input: {
   attachmentCount?: number;
   /** True when body likely embeds a local video card. */
   hasVideoCard?: boolean;
+  /** When true, row is typically height-0 (inlined tool / hidden journal step). */
+  collapsed?: boolean;
 }): number {
+  // Collapsed tool_step rows used to estimate 40–120px then measure 0, which
+  // inflated scrollHeight and left the pin window on a blank tail.
+  if (input.collapsed) return 0;
   const content = Math.max(0, input.contentLength ?? 0);
   const thought = Math.max(0, input.thoughtLength ?? 0);
   const role = (input.role ?? "assistant").toLowerCase();
+  // Journal tool rows are almost always inlined into the assistant timeline
+  // (height 0). Prefer a tiny estimate so long agent turns do not fake a tall
+  // scroll range that collapses after measure.
+  if (role === "tool") {
+    // Standalone tool timeline row (~one line) only if it has real content.
+    if (content <= 0) return 0;
+    return 36;
+  }
   // ~42 chars/line in the bubble, ~20px line height, role chrome.
   const lines = Math.ceil((content + thought * 0.5) / 42);
-  const chrome = role === "user" ? 72 : role === "tool" ? 40 : 96;
+  const chrome = role === "user" ? 72 : 96;
   const atts = Math.max(0, input.attachmentCount ?? 0);
   // 64px thumbs + gap, wrap ~5 per row in a ~360px stack.
   const attRows = atts > 0 ? Math.ceil(atts / 5) : 0;
@@ -210,7 +223,9 @@ export function shouldCommitRowHeight(
   // only mounted empty spacers — chat history looked blank after long agent
   // turns (tools woven into the assistant, rows still in the array).
   if (next === 0) {
-    return prev == null || prev !== 0;
+    if (prev == null) return true;
+    if (prev === 0) return false;
+    return true;
   }
   if (prev == null) return true;
   const delta = next - prev;

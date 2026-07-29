@@ -833,9 +833,19 @@ export function ConversationThread({
       const n = transcriptMessages.length;
       for (let i = Math.max(0, n - 2); i < n; i++) out.push(i);
     } else {
-      // Idle: last transcript row only (assistant). Indices are post-filter.
+      // Idle: last user + last transcript row (post-filter indices only).
+      // Inlined tool rows are already removed from transcriptMessages so the
+      // pin window should land on real chat, not empty spacers.
+      pushId(lastUserMessageId);
       const n = transcriptMessages.length;
       if (n > 0) out.push(n - 1);
+      for (let i = n - 1; i >= 0; i--) {
+        const row = transcriptMessages[i]!;
+        if (row.role === "assistant" && !row.isError) {
+          out.push(i);
+          break;
+        }
+      }
     }
     return out;
   }, [
@@ -1010,8 +1020,8 @@ export function ConversationThread({
                 Number.isFinite(meta.tokensAfter)
               ) {
                 detail = tr("compact.tokensRange", {
-                  before: formatTokenCount(meta.tokensBefore),
-                  after: formatTokenCount(meta.tokensAfter),
+                  before: formatTokenCount(meta.tokensBefore, locale),
+                  after: formatTokenCount(meta.tokensAfter, locale),
                 });
               } else if (meta?.note) {
                 detail = meta.note;
